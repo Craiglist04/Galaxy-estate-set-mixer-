@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: galaxy-estate-field-set-mixer
+    runtime: static
+    buildCommand: echo "No build needed"
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
