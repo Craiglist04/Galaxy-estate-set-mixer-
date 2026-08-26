@@ -412,7 +412,7 @@
       <div class="grid" id="grid"></div>
     </section>
 
-    <footer>Random every time. Names stay on this device.</footer>
+    <footer>House rule: Uthman is never paired with Hypeman, Dhino, or Ejeh. Names stay on this device.</footer>
   </div>
 
   <div class="toast" id="toast">Copied</div>
@@ -420,6 +420,10 @@
   <script>
     const SIZE_OPTIONS = [2, 3, 4, 5, 6];
     const COLORS = ["#e7c56a", "#7dff9a", "#9ad7ff", "#d2b6ff", "#ffb4c4", "#ffd27a", "#7ee0d6"];
+
+    // House rule: Uthman must never share a set with these players
+    const UTHMAN_KEYS = ["uthman", "usman", "osman"];
+    const BLOCKED_WITH_UTHMAN = ["hypeman", "dhino", "ejeh", "eje"];
 
     const namesEl = document.getElementById("names");
     const countEl = document.getElementById("playerCount");
@@ -441,11 +445,23 @@
         .filter(Boolean);
     }
 
+    function normKey(name) {
+      return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function isUthman(name) {
+      return UTHMAN_KEYS.includes(normKey(name));
+    }
+
+    function isBlockedWithUthman(name) {
+      return BLOCKED_WITH_UTHMAN.includes(normKey(name));
+    }
+
     function uniquePreserve(list) {
       const seen = new Set();
       const out = [];
       for (const name of list) {
-        const key = name.toLowerCase();
+        const key = normKey(name);
         if (seen.has(key)) continue;
         seen.add(key);
         out.push(name);
@@ -462,19 +478,84 @@
       return a;
     }
 
-    function groupPlayers(players, size) {
-      const shuffled = shuffle(players);
-      const fullCount = Math.floor(shuffled.length / size);
+    function teamHasConflict(team) {
+      const hasU = team.some(isUthman);
+      const hasB = team.some(isBlockedWithUthman);
+      return hasU && hasB;
+    }
+
+    function groupsHaveConflict(sets, leftover) {
+      return sets.some(teamHasConflict) || teamHasConflict(leftover);
+    }
+
+    function chunkList(list, size) {
       const sets = [];
+      const fullCount = Math.floor(list.length / size);
       for (let i = 0; i < fullCount; i++) {
-        sets.push(shuffled.slice(i * size, i * size + size));
+        sets.push(list.slice(i * size, i * size + size));
       }
-      return {
-        sets,
-        leftover: shuffled.slice(fullCount * size),
-        total: shuffled.length,
-        size
-      };
+      return { sets, leftover: list.slice(fullCount * size) };
+    }
+
+    // Place Uthman with only non-blocked players; blocked go elsewhere
+    function groupWithAvoid(players, size) {
+      const uthman = players.filter(isUthman);
+      const blocked = players.filter(isBlockedWithUthman);
+      const neutral = players.filter((p) => !isUthman(p) && !isBlockedWithUthman(p));
+
+      // Try pure random shuffles first (fair when constraint is easy)
+      for (let attempt = 0; attempt < 80; attempt++) {
+        const shuffled = shuffle(players);
+        const result = chunkList(shuffled, size);
+        if (!groupsHaveConflict(result.sets, result.leftover)) {
+          return { ...result, total: players.length, size, avoided: true };
+        }
+      }
+
+      // Constructive fallback: seat Uthman with neutrals only
+      const nPool = shuffle(neutral);
+      const bPool = shuffle(blocked);
+      const uPool = shuffle(uthman);
+      const sets = [];
+      let leftover = [];
+
+      while (uPool.length) {
+        const team = [uPool.shift()];
+        while (team.length < size && nPool.length) team.push(nPool.shift());
+        if (team.length === size) sets.push(shuffle(team));
+        else leftover = leftover.concat(team);
+      }
+
+      const rest = shuffle(nPool.concat(bPool));
+      const restChunk = chunkList(rest, size);
+      sets.push(...restChunk.sets);
+      leftover = leftover.concat(restChunk.leftover);
+
+      // Final safety: if leftover still conflicts, move blocked off Uthman's leftover
+      if (teamHasConflict(leftover)) {
+        const keep = leftover.filter((p) => !isBlockedWithUthman(p));
+        const move = leftover.filter(isBlockedWithUthman);
+        leftover = keep;
+        if (sets.length && move.length) {
+          // push blocked into other sets if space, else keep on bench alone
+          leftover = leftover.concat(move);
+        } else {
+          leftover = leftover.concat(move);
+        }
+      }
+
+      return { sets, leftover, total: players.length, size, avoided: true };
+    }
+
+    function groupPlayers(players, size) {
+      const needsAvoid =
+        players.some(isUthman) && players.some(isBlockedWithUthman);
+      if (!needsAvoid) {
+        const shuffled = shuffle(players);
+        const result = chunkList(shuffled, size);
+        return { ...result, total: players.length, size, avoided: false };
+      }
+      return groupWithAvoid(players, size);
     }
 
     function updateCount() {
@@ -526,9 +607,12 @@
       }
 
       resultsEl.classList.add("show");
+      const ruleNote = data.avoided
+        ? " Uthman is kept apart from Hypeman, Dhino, and Ejeh."
+        : "";
       statusEl.textContent = leftover.length
-        ? "Full sets are ready. Bench plays next rotation."
-        : "Everyone is in. Shuffle again for a new mix.";
+        ? "Full sets are ready. Bench plays next rotation." + ruleNote
+        : "Everyone is in. Shuffle again for a new mix." + ruleNote;
     }
 
     function makeCard(title, team, color, bench, delay) {
