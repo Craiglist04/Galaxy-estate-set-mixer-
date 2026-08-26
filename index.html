@@ -412,7 +412,7 @@
       <div class="grid" id="grid"></div>
     </section>
 
-    <footer>House rule: Uthman is never paired with Hypeman, Dhino, or Ejeh. Names stay on this device.</footer>
+    <footer>House rule: Uthman is never paired with Hypeman, Dhino, Ejeh, or Ak. Names stay on this device.</footer>
   </div>
 
   <div class="toast" id="toast">Copied</div>
@@ -423,7 +423,7 @@
 
     // House rule: Uthman must never share a set with these players
     const UTHMAN_KEYS = ["uthman", "usman", "osman"];
-    const BLOCKED_WITH_UTHMAN = ["hypeman", "dhino", "ejeh", "eje"];
+    const BLOCKED_WITH_UTHMAN = ["hypeman", "dhino", "ejeh", "eje", "ak"];
 
     const namesEl = document.getElementById("names");
     const countEl = document.getElementById("playerCount");
@@ -608,7 +608,7 @@
 
       resultsEl.classList.add("show");
       const ruleNote = data.avoided
-        ? " Uthman is kept apart from Hypeman, Dhino, and Ejeh."
+        ? " Uthman is kept apart from Hypeman, Dhino, Ejeh, and Ak."
         : "";
       statusEl.textContent = leftover.length
         ? "Full sets are ready. Bench plays next rotation." + ruleNote
