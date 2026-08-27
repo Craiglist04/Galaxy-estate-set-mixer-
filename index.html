@@ -412,7 +412,7 @@
       <div class="grid" id="grid"></div>
     </section>
 
-    <footer>House rule: Uthman is never paired with Hypeman, Dhino, Ejeh, or Ak. Names stay on this device.</footer>
+    <footer>Names stay on this device.</footer>
   </div>
 
   <div class="toast" id="toast">Copied</div>
@@ -607,12 +607,9 @@
       }
 
       resultsEl.classList.add("show");
-      const ruleNote = data.avoided
-        ? " Uthman is kept apart from Hypeman, Dhino, Ejeh, and Ak."
-        : "";
       statusEl.textContent = leftover.length
-        ? "Full sets are ready. Bench plays next rotation." + ruleNote
-        : "Everyone is in. Shuffle again for a new mix." + ruleNote;
+        ? "Full sets are ready. Bench plays next rotation."
+        : "Everyone is in. Shuffle again for a new mix.";
     }
 
     function makeCard(title, team, color, bench, delay) {
